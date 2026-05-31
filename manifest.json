@@ -1,0 +1,12 @@
+{
+  "name": "NFL 2K Texture Manager",
+  "id": "prefix-renamer-plugin",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": ["figma"],
+  "networkAccess": {
+    "allowedDomains": ["http://localhost:3333"],
+    "reasoning": "Connects to a local file watcher script that monitors a PNG on disk and pushes image updates to Figma automatically."
+  }
+}

@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 13px;
+      background: #08080f;
+      color: #fff;
+      overflow: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 10% 0%,  rgba(10,132,255,0.13) 0%, transparent 55%),
+        radial-gradient(ellipse at 92% 100%, rgba(94,92,230,0.09)  0%, transparent 55%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .tabs, .panel { position: relative; z-index: 1; }
+
+    /* Segmented tabs */
+    .tabs {
+      display: flex;
+      background: rgba(255,255,255,0.05);
+      border-radius: 12px;
+      padding: 3px;
+      margin: 14px 14px 0;
+      gap: 2px;
+    }
+    .tab {
+      flex: 1;
+      padding: 8px 4px;
+      text-align: center;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 11.5px;
+      color: rgba(255,255,255,0.35);
+      border-radius: 9px;
+      transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+      user-select: none;
+      letter-spacing: 0.2px;
+    }
+    .tab.active {
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.45);
+    }
+
+    /* Panels */
+    .panel { display: none; padding: 16px 14px 14px; }
+    .panel.active { display: block; }
+
+    label {
+      display: block;
+      font-size: 10px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.25);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 9px;
+    }
+
+    /* Inputs & selects */
+    input, select {
+      width: 100%;
+      padding: 9px 12px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      font-size: 13px;
+      font-family: inherit;
+      color: #fff;
+      outline: none;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    input::placeholder { color: rgba(255,255,255,0.2); }
+    input:focus, select:focus {
+      border-color: rgba(10,132,255,0.5);
+      background: rgba(255,255,255,0.08);
+    }
+    input[readonly] { cursor: pointer; }
+    select { cursor: pointer; }
+    select option { background: #16161f; color: #fff; }
+
+    /* Glassy buttons */
+    button {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      letter-spacing: 0.15px;
+      transition: filter 0.15s, transform 0.1s, opacity 0.15s;
+    }
+    button:hover:not(:disabled)  { filter: brightness(1.2); }
+    button:active:not(:disabled) { filter: brightness(0.85); transform: scale(0.985); }
+    button:disabled { opacity: 0.25; cursor: not-allowed; }
+
+    .btn-primary {
+      background: rgba(10,132,255,0.18);
+      border: 1px solid rgba(10,132,255,0.38);
+      color: #6ab8ff;
+    }
+    .btn-warning {
+      background: rgba(255,179,64,0.14);
+      border: 1px solid rgba(255,179,64,0.32);
+      color: #ffbb55;
+    }
+    .btn-danger {
+      background: rgba(255,90,82,0.14);
+      border: 1px solid rgba(255,90,82,0.32);
+      color: #ff7068;
+    }
+    .btn-ghost {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.55);
+    }
+
+    /* Chips */
+    .info-row  { display: flex; gap: 6px; margin-bottom: 11px; flex-wrap: wrap; }
+    .info-chip {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 4px 11px;
+      font-size: 11px;
+      color: rgba(255,255,255,0.58);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 170px;
+    }
+    .info-chip span { color: rgba(255,255,255,0.28); margin-right: 4px; }
+
+    /* Path preview */
+    .preview {
+      margin-top: 10px;
+      padding: 8px 11px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 9px;
+      font-size: 11px;
+      font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+      color: rgba(255,255,255,0.32);
+      word-break: break-all;
+      line-height: 1.5;
+    }
+
+    /* Status */
+    .status-line { margin-top: 9px; font-size: 12px; min-height: 16px; text-align: center; }
+    .error   { color: #ff7068; }
+    .success { color: #4cd97b; }
+
+    .selection-info {
+      font-size: 11px;
+      color: rgba(255,255,255,0.28);
+      margin-bottom: 11px;
+    }
+
+    .divider { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 15px 0 13px; }
+
+    .input-row { display: flex; gap: 8px; align-items: center; }
+    .input-row input, .input-row select { flex: 1; }
+    .input-row button { margin-top: 0; width: auto; padding: 9px 13px; flex-shrink: 0; }
+
+    /* Variable chips */
+    .var-chip {
+      display: inline-flex;
+      align-items: center;
+      margin-top: 0;
+      width: auto;
+      padding: 3px 9px;
+      background: rgba(10,132,255,0.12);
+      border: 1px solid rgba(10,132,255,0.28);
+      border-radius: 20px;
+      font-size: 11px;
+      font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+      color: #6ab8ff;
+      cursor: pointer;
+      letter-spacing: 0.2px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .var-chip::before { content: '{'; opacity: 0.5; margin-right: 1px; }
+    .var-chip::after  { content: '}'; opacity: 0.5; margin-left: 1px; }
+    .var-chip:hover:not(:disabled) {
+      background: rgba(10,132,255,0.22);
+      border-color: rgba(10,132,255,0.5);
+      filter: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="rename">Rename</div>
+    <div class="tab" data-tab="select">Select</div>
+    <div class="tab" data-tab="update">Fix Issues</div>
+    <div class="tab" data-tab="sync">Sync</div>
+    <div class="tab" data-tab="shoot">Shoot</div>
+  </div>
+
+  <!-- Rename Panel (Basic + Advanced merged) -->
+  <div class="panel active" id="panel-rename">
+    <div class="selection-info" id="rename-selection-info">No layers selected</div>
+    <div class="input-row" style="margin-bottom:10px;">
+      <label for="multi-select-toggle" style="margin:0; min-width:88px;">Multi-select</label>
+      <input id="multi-select-toggle" type="checkbox" style="width:auto;" />
+      <button id="multi-add-btn" class="btn-ghost" style="padding:8px 10px;">Add Current</button>
+      <button id="multi-clear-btn" class="btn-ghost" style="padding:8px 10px;">Clear</button>
+    </div>
+    <div class="info-row">
+      <div class="info-chip" id="chip-page"><span>Page</span>—</div>
+      <div class="info-chip" id="chip-section"><span>Section</span>—</div>
+      <div class="info-chip" id="chip-count"><span>Selected</span>—</div>
+    </div>
+    <label for="variant">Type</label>
+    <select id="variant">
+      <option value="Home">Home</option>
+      <option value="Away">Away</option>
+      <option value="Shared">Shared</option>
+      <option value="Blue">Blue</option>
+      <option value="White">White</option>
+      <option value="Stadium">Stadium</option>
+    </select>
+    <div class="preview" id="adv-preview">Select frames to see a preview</div>
+    <button id="rename-adv-btn" class="btn-primary" disabled>Rename Frames</button>
+
+    <hr class="divider" />
+    <div class="section-label">Custom Prefix</div>
+    <label for="prefix">Prefix</label>
+    <input id="prefix" type="text" placeholder="e.g. {page}/{section}/Home" />
+    <div style="display:flex; gap:5px; margin-top:7px; flex-wrap:wrap;">
+      <button type="button" class="var-chip" data-var="{page}">page</button>
+      <button type="button" class="var-chip" data-var="{section}">section</button>
+      <button type="button" class="var-chip" data-var="{name}">name</button>
+    </div>
+    <div style="margin-top:5px; font-size:10px; color:rgba(255,255,255,0.25);">
+      If <span style="font-family:'SF Mono','Fira Code',monospace;">name</span> is used, result becomes the full name
+    </div>
+    <button id="rename-basic-btn" class="btn-primary" disabled>Add Prefix</button>
+
+    <div id="status-rename" class="status-line"></div>
+  </div>
+
+  <!-- Select Panel -->
+  <div class="panel" id="panel-select">
+    <button id="select-frames-btn" class="btn-primary">Select All Frames</button>
+    <div id="status-select" class="status-line"></div>
+    <button id="find-errors-btn" class="btn-warning" style="margin-top:8px;">Find Name Errors</button>
+    <div id="status-errors" class="status-line"></div>
+    <button id="select-jersey-btn" class="btn-ghost" style="margin-top:8px;">Select Jersey</button>
+    <div id="status-suffix-select" class="status-line"></div>
+    <button id="select-children-btn" class="btn-ghost" style="margin-top:6px;">Select All Elements in Selected Frames</button>
+  </div>
+
+  <!-- Update Panel (formerly Change) -->
+  <div class="panel" id="panel-update">
+    <div class="selection-info" id="update-selection-info">No layers selected</div>
+    <hr class="divider" style="margin-top:0;" />
+    <div class="section-label">Section Name Check</div>
+    <button id="check-sections-btn" class="btn-warning" disabled>Check Section Names</button>
+    <div id="status-check-sections" class="status-line"></div>
+    <button id="fix-sections-btn" class="btn-danger" disabled>Fix Section Names</button>
+
+    <hr class="divider" />
+    <div class="section-label">Double Prefix Cleanup</div>
+    <button id="fix-double-btn" class="btn-danger">Fix Double Names</button>
+    <div id="status-double" class="status-line"></div>
+  </div>
+
+  <!-- Sync Panel -->
+  <div class="panel" id="panel-sync">
+
+    <div class="section-label">Selected Frame</div>
+    <div class="info-chip" id="sync-frame-chip"
+         style="max-width:100%; border-radius:8px; padding:6px 11px; margin-bottom:12px;
+                font-family:'SF Mono','Fira Code','Courier New',monospace; font-size:11px;">
+      No frame selected
+    </div>
+
+    <hr class="divider" style="margin-top:0;" />
+    <div class="section-label">Watcher</div>
+    <div style="display:flex; gap:6px; margin-bottom:10px; align-items:center;">
+      <div class="info-chip" id="sync-status-chip" style="flex-shrink:0;"><span>●</span> Not connected</div>
+      <div class="info-chip" id="sync-dir-chip" style="flex:1; max-width:none;"><span>Folder</span>—</div>
+      <button id="sync-refresh-btn" class="btn-ghost" title="Refresh"
+              style="margin-top:0; width:auto; padding:7px 11px; flex-shrink:0;">↻</button>
+    </div>
+
+    <div class="section-label">Matched File</div>
+    <div class="info-chip" id="sync-matched-chip"
+         style="max-width:100%; width:100%; border-radius:8px; padding:6px 11px; margin-bottom:12px;
+                font-family:'SF Mono','Fira Code','Courier New',monospace; font-size:11px;
+                white-space:normal; word-break:break-all;">
+      —
+    </div>
+
+    <button id="apply-once-btn" class="btn-primary" disabled>Apply to Frame</button>
+    <button id="sync-toggle-btn" class="btn-primary" disabled style="margin-top:8px;">Start Watching</button>
+    <div id="sync-last-updated"
+         style="margin-top:9px; font-size:11px; color:rgba(255,255,255,0.25); text-align:center;">
+      Never updated
+    </div>
+    <div id="status-sync" class="status-line"></div>
+  </div>
+
+  <!-- Shoot Panel -->
+  <div class="panel" id="panel-shoot">
+
+    <!-- Status indicator -->
+    <div id="shoot-status-card"
+         style="display:flex; align-items:center; gap:12px; padding:13px 14px;
+                background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07);
+                border-radius:13px; margin-bottom:16px; transition: border-color 0.3s, background 0.3s;">
+      <div id="shoot-dot"
+           style="width:11px; height:11px; border-radius:50%; flex-shrink:0;
+                  background:rgba(255,255,255,0.15);
+                  transition: background 0.3s, box-shadow 0.3s;"></div>
+      <div>
+        <div id="shoot-ready-label"
+             style="font-size:12px; font-weight:600; color:rgba(255,255,255,0.38);
+                    transition: color 0.3s;">No image copied</div>
+        <div id="shoot-ready-sub"
+             style="font-size:10px; color:rgba(255,255,255,0.2); margin-top:2px;
+                    font-family:'SF Mono','Fira Code','Courier New',monospace;
+                    word-break:break-all; transition: color 0.3s;">
+          Export a layer to get started
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">Step 1 — Copy</div>
+    <div style="font-size:11px; color:rgba(255,255,255,0.28); margin-bottom:9px; line-height:1.5;">
+      Select any layer, then click below to export it as a PNG.
+    </div>
+    <button id="copy-png-btn" class="btn-ghost">⬆ Copy as PNG</button>
+
+    <hr class="divider" />
+
+    <div class="section-label">Step 2 — Apply</div>
+    <div style="font-size:11px; color:rgba(255,255,255,0.28); margin-bottom:9px; line-height:1.5;">
+      Select one or more layers with image fills. Their crop &amp; transform will be preserved.
+    </div>
+    <button id="shoot-apply-btn" class="btn-primary" disabled>⬇ Apply Image</button>
+
+    <div id="status-shoot" class="status-line"></div>
+  </div>
+
+  <script>
+    let state = { count: 0, pageName: "", sections: [], missingSection: false, multiSelectMode: false };
+
+    // Tab switching
+    document.querySelectorAll(".tab").forEach(tab => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+        document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+        tab.classList.add("active");
+        document.getElementById("panel-" + tab.dataset.tab).classList.add("active");
+        clearStatuses();
+      });
+    });
+
+    function clearStatuses() {
+      ["status-rename", "status-update"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.textContent = ""; el.className = "status-line"; }
+      });
+    }
+
+    function updateUI() {
+      const { count, pageName, sections, missingSection } = state;
+      const countLabel = count === 0
+        ? (state.multiSelectMode ? "No layers in multi-select list" : "No layers selected")
+        : `${count} layer${count > 1 ? "s" : ""} selected${state.multiSelectMode ? " (multi-select)" : ""}`;
+
+      // Rename
+      document.getElementById("rename-selection-info").textContent = countLabel;
+      document.getElementById("rename-basic-btn").disabled = count === 0;
+      document.getElementById("multi-select-toggle").checked = !!state.multiSelectMode;
+      document.getElementById("multi-add-btn").disabled = !state.multiSelectMode;
+      document.getElementById("multi-clear-btn").disabled = !state.multiSelectMode || count === 0;
+
+      // Chips
+      document.getElementById("chip-page").innerHTML = `<span>Page</span>${pageName || "—"}`;
+      const sectionText = sections.length === 0 ? "—"
+        : sections.length === 1 ? sections[0]
+        : `${sections.length} sections`;
+      document.getElementById("chip-section").innerHTML = `<span>Section</span>${sectionText}`;
+      document.getElementById("chip-count").innerHTML   = `<span>Selected</span>${count}`;
+
+      const canRename = count > 0 && sections.length > 0 && !missingSection;
+      document.getElementById("rename-adv-btn").disabled = !canRename;
+      updatePreview();
+
+      // Update tab
+      document.getElementById("update-selection-info").textContent = countLabel;
+      document.getElementById("check-sections-btn").disabled  = count === 0;
+      document.getElementById("fix-sections-btn").disabled    = true;
+      document.getElementById("status-check-sections").textContent = "";
+    }
+
+    function updatePreview() {
+      const { count, pageName, sections, missingSection } = state;
+      const preview = document.getElementById("adv-preview");
+      const variant = document.getElementById("variant").value;
+      if (count === 0) { preview.textContent = "Select frames to see a preview"; return; }
+      if (missingSection || sections.length === 0) { preview.textContent = "Some selected layers are not inside a section."; return; }
+      const extra = sections.length > 1 ? ` (+${sections.length - 1} more)` : "";
+      if (variant === "Stadium") {
+        preview.textContent = `${sections[0]}/Stadium/Thumbnail/FrameName${extra}`;
+      } else {
+        preview.textContent = `${pageName}/Uniform/${sections[0]}/${variant}/FrameName${extra}`;
+      }
+    }
+
+    document.getElementById("variant").addEventListener("change", updatePreview);
+
+    window.onmessage = (event) => {
+      const msg = event.data.pluginMessage;
+      if (!msg) return;
+
+      if (msg.type === "selection-info") {
+        state = {
+          count: msg.count,
+          pageName: msg.pageName,
+          sections: msg.sections,
+          missingSection: msg.missingSection,
+          multiSelectMode: !!msg.multiSelectMode
+        };
+
+        // Update sync tab frame context
+        if (msg.frameSuffix && msg.frameSuffix !== currentSuffix) {
+          currentSuffix = msg.frameSuffix;
+          updateMatchedFile();
+        }
+        if (msg.count === 0) {
+          syncFrameChip.textContent = "No frame selected";
+          syncFrameChip.style.color = "";
+        } else if (msg.syncContext) {
+          syncFrameChip.textContent = msg.syncContext + (msg.frameSuffix || "");
+          syncFrameChip.style.color = "rgba(255,255,255,0.7)";
+        }
+
+        updateUI();
+      }
+
+      if (msg.type === "success") {
+        const activePanel = document.querySelector(".tab.active").dataset.tab;
+        const statusEl = document.getElementById("status-" + activePanel);
+        if (statusEl) { statusEl.textContent = msg.message; statusEl.className = "status-line success"; }
+        if (activePanel === "rename") document.getElementById("prefix").value = "";
+      }
+
+      if (msg.type === "success-select") {
+        // Route to whichever status line is in the active context
+        const suffixBtns = ["select-jersey-btn", "select-jersey-sleeve-btn"];
+        const lastClicked = document.activeElement && document.activeElement.id;
+        const el = suffixBtns.includes(lastClicked)
+          ? document.getElementById("status-suffix-select")
+          : document.getElementById("status-select");
+        el.textContent = msg.message;
+        el.className = msg.message.startsWith("No") ? "status-line error" : "status-line success";
+      }
+
+      if (msg.type === "check-sections-result") {
+        const el = document.getElementById("status-check-sections");
+        if (msg.mismatches === 0) {
+          el.textContent = `All ${msg.total} frames match their section.`;
+          el.className = "status-line success";
+        } else {
+          el.textContent = `${msg.mismatches} of ${msg.total} frames have section mismatches — selected.`;
+          el.className = "status-line error";
+          document.getElementById("fix-sections-btn").disabled = false;
+        }
+      }
+
+      if (msg.type === "fix-double-result") {
+        const el = document.getElementById("status-double");
+        if (msg.fixed === 0) {
+          el.textContent = "No double-prefixed frames found.";
+          el.className = "status-line success";
+        } else {
+          el.textContent = `Fixed ${msg.fixed} frame${msg.fixed !== 1 ? "s" : ""} — selected.`;
+          el.className = "status-line success";
+        }
+      }
+
+      if (msg.type === "sync-error") {
+        const activeP = document.querySelector(".tab.active").dataset.tab;
+        if (activeP === "shoot") {
+          shootStatus.textContent = msg.message;
+          shootStatus.className   = "status-line error";
+        } else {
+          syncStatus.textContent = msg.message;
+          syncStatus.className   = "status-line error";
+        }
+      }
+
+      if (msg.type === "name-errors-result") {
+        const el = document.getElementById("status-errors");
+        if (msg.errorCount === 0) {
+          el.textContent = `All ${msg.total} frames are correctly named.`;
+          el.className = "status-line success";
+        } else {
+          el.textContent = `${msg.errorCount} of ${msg.total} frames have naming errors — selected.`;
+          el.className = "status-line error";
+        }
+      }
+
+      if (msg.type === "png-exported") {
+        // bytes arrive as Uint8Array from Figma sandbox
+        const bytes = msg.bytes instanceof Uint8Array ? msg.bytes : new Uint8Array(msg.bytes);
+        setShootReady(bytes, msg.name || "");
+        // restore button
+        copyPngBtn.disabled    = false;
+        copyPngBtn.textContent = "⬆ Copy as PNG";
+        // Also try to write to system clipboard (bonus — may fail if gesture context is gone)
+        try {
+          const blob = new Blob([bytes], { type: "image/png" });
+          navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]).catch(() => {});
+        } catch (_) {}
+      }
+
+      if (msg.type === "shoot-error") {
+        shootStatus.textContent = msg.message;
+        shootStatus.className   = "status-line error";
+        copyPngBtn.disabled     = false;
+        copyPngBtn.textContent  = "⬆ Copy as PNG";
+      }
+
+      if (msg.type === "sync-applied") {
+        // sync-applied is also emitted by apply-image (used by both Sync and Shoot tabs)
+        const activePanel = document.querySelector(".tab.active").dataset.tab;
+        const msg2 = `Applied to ${msg.count} layer${msg.count !== 1 ? "s" : ""}.`;
+        if (activePanel === "shoot") {
+          shootStatus.textContent = msg2;
+          shootStatus.className   = "status-line success";
+        } else {
+          syncStatus.textContent = msg2;
+          syncStatus.className   = "status-line success";
+        }
+      }
+
+      if (msg.type === "error") {
+        const activePanel = document.querySelector(".tab.active").dataset.tab;
+        const statusEl = document.getElementById("status-" + activePanel);
+        if (statusEl) { statusEl.textContent = msg.message; statusEl.className = "status-line error"; }
+      }
+    };
+
+    // Rename — advanced
+    document.getElementById("rename-adv-btn").addEventListener("click", () => {
+      clearStatuses();
+      parent.postMessage({ pluginMessage: { type: "rename-advanced", variant: document.getElementById("variant").value } }, "*");
+    });
+
+    // Rename — basic
+    document.getElementById("rename-basic-btn").addEventListener("click", () => {
+      clearStatuses();
+      parent.postMessage({ pluginMessage: { type: "rename-basic", prefix: document.getElementById("prefix").value } }, "*");
+    });
+
+    document.getElementById("prefix").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") document.getElementById("rename-basic-btn").click();
+    });
+
+    // Variable chips — insert at cursor
+    document.querySelectorAll(".var-chip").forEach(chip => {
+      chip.addEventListener("click", () => {
+        const input = document.getElementById("prefix");
+        const token = chip.dataset.var;
+        const start = input.selectionStart;
+        const end   = input.selectionEnd;
+        input.value = input.value.slice(0, start) + token + input.value.slice(end);
+        // Move cursor to after the inserted token
+        const pos = start + token.length;
+        input.setSelectionRange(pos, pos);
+        input.focus();
+      });
+    });
+
+    document.getElementById("multi-select-toggle").addEventListener("change", (e) => {
+      clearStatuses();
+      parent.postMessage({ pluginMessage: { type: "toggle-multi-select", enabled: e.target.checked } }, "*");
+    });
+
+    document.getElementById("multi-add-btn").addEventListener("click", () => {
+      clearStatuses();
+      parent.postMessage({ pluginMessage: { type: "multi-add-current-selection" } }, "*");
+    });
+
+    document.getElementById("multi-clear-btn").addEventListener("click", () => {
+      clearStatuses();
+      parent.postMessage({ pluginMessage: { type: "multi-clear-selection" } }, "*");
+    });
+
+    // Select
+    document.getElementById("select-frames-btn").addEventListener("click", () => {
+      document.getElementById("status-select").textContent = "";
+      parent.postMessage({ pluginMessage: { type: "select-all-frames" } }, "*");
+    });
+
+    document.getElementById("find-errors-btn").addEventListener("click", () => {
+      document.getElementById("status-errors").textContent = "";
+      parent.postMessage({ pluginMessage: { type: "find-name-errors" } }, "*");
+    });
+
+    document.getElementById("select-jersey-btn").addEventListener("click", () => {
+      document.getElementById("status-suffix-select").textContent = "";
+      parent.postMessage({ pluginMessage: { type: "select-jersey-frames" } }, "*");
+    });
+
+    document.getElementById("select-children-btn").addEventListener("click", () => {
+      parent.postMessage({ pluginMessage: { type: "select-children" } }, "*");
+    });
+
+    // Update
+    document.getElementById("check-sections-btn").addEventListener("click", () => {
+      document.getElementById("status-check-sections").textContent = "";
+      document.getElementById("fix-sections-btn").disabled = true;
+      parent.postMessage({ pluginMessage: { type: "check-sections" } }, "*");
+    });
+
+    document.getElementById("fix-sections-btn").addEventListener("click", () => {
+      document.getElementById("status-check-sections").textContent = "";
+      parent.postMessage({ pluginMessage: { type: "fix-sections" } }, "*");
+    });
+
+    document.getElementById("fix-double-btn").addEventListener("click", () => {
+      document.getElementById("status-double").textContent = "";
+      parent.postMessage({ pluginMessage: { type: "fix-double-names" } }, "*");
+    });
+
+    // Sync
+    let allWatcherFiles = [];
+    let matchedFile     = null;
+    let currentSuffix   = null;
+    let syncInterval    = null;
+    let lastVersion     = null;
+    let isWatching      = false;
+
+    const applyOnceBtn    = document.getElementById("apply-once-btn");
+    const syncToggle      = document.getElementById("sync-toggle-btn");
+    const syncStatusChip  = document.getElementById("sync-status-chip");
+    const syncDirChip     = document.getElementById("sync-dir-chip");
+    const syncRefreshBtn  = document.getElementById("sync-refresh-btn");
+    const syncLastUpdated = document.getElementById("sync-last-updated");
+    const syncStatus      = document.getElementById("status-sync");
+    const syncFrameChip   = document.getElementById("sync-frame-chip");
+    const syncMatchedChip = document.getElementById("sync-matched-chip");
+
+    async function pingWatcher() {
+      const res = await fetch("http://localhost:3333/ping");
+      return res.json();
+    }
+
+    function updateMatchedFile() {
+      if (!currentSuffix || allWatcherFiles.length === 0) {
+        syncMatchedChip.textContent   = allWatcherFiles.length === 0 ? "—" : "Select a frame first";
+        syncMatchedChip.style.color   = "";
+        matchedFile                   = null;
+        applyOnceBtn.disabled         = true;
+        if (!isWatching) syncToggle.disabled = true;
+        return;
+      }
+      const found = allWatcherFiles.find(f => f.name.includes(currentSuffix));
+      if (found) {
+        matchedFile                   = found;
+        syncMatchedChip.textContent   = found.name;
+        syncMatchedChip.style.color   = "#4cd97b";
+        applyOnceBtn.disabled         = false;
+        syncToggle.disabled           = false;
+      } else {
+        matchedFile                   = null;
+        syncMatchedChip.textContent   = `No match for: ${currentSuffix}`;
+        syncMatchedChip.style.color   = "#ff7068";
+        applyOnceBtn.disabled         = true;
+        if (!isWatching) syncToggle.disabled = true;
+      }
+    }
+
+    async function refreshFileList() {
+      try {
+        const data      = await pingWatcher();
+        allWatcherFiles = data.files;
+        syncStatusChip.innerHTML = `<span style="color:#4cd97b">●</span> Connected`;
+        syncDirChip.innerHTML    = `<span>Folder</span>${data.dir}`;
+        syncStatus.textContent   = "";
+        updateMatchedFile();
+      } catch {
+        allWatcherFiles           = [];
+        matchedFile               = null;
+        syncStatusChip.innerHTML  = `<span style="color:rgba(255,255,255,0.25)">●</span> Not connected`;
+        syncDirChip.innerHTML     = `<span>Folder</span>—`;
+        syncMatchedChip.textContent = "—";
+        syncMatchedChip.style.color = "";
+        applyOnceBtn.disabled     = true;
+        if (!isWatching) syncToggle.disabled = true;
+        syncStatus.textContent    = "Watcher not running — start it with: node watcher.js <folder>";
+        syncStatus.className      = "status-line error";
+      }
+    }
+
+    syncRefreshBtn.addEventListener("click", refreshFileList);
+    refreshFileList();
+
+    applyOnceBtn.addEventListener("click", async () => {
+      if (!matchedFile) return;
+      try {
+        syncStatus.textContent = "";
+        const imgRes = await fetch(`http://localhost:3333/image?name=${encodeURIComponent(matchedFile.name)}`);
+        const bytes  = await imgRes.arrayBuffer();
+        parent.postMessage({ pluginMessage: { type: "apply-image", bytes } }, "*");
+      } catch {
+        syncStatus.textContent = "Failed to fetch file.";
+        syncStatus.className   = "status-line error";
+      }
+    });
+
+    function startWatching() {
+      if (!matchedFile) return;
+      isWatching   = true;
+      lastVersion  = null;
+      syncToggle.textContent = "Stop Watching";
+      syncStatus.textContent = "";
+
+      syncInterval = setInterval(async () => {
+        try {
+          const data    = await pingWatcher();
+          allWatcherFiles = data.files;
+          const fileObj = data.files.find(f => f.name === matchedFile.name);
+          if (!fileObj) return;
+          if (lastVersion !== null && fileObj.version !== lastVersion) {
+            const imgRes = await fetch(`http://localhost:3333/image?name=${encodeURIComponent(matchedFile.name)}`);
+            const bytes  = await imgRes.arrayBuffer();
+            parent.postMessage({ pluginMessage: { type: "apply-image", bytes } }, "*");
+            syncLastUpdated.textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+          }
+          lastVersion = fileObj.version;
+        } catch {
+          stopWatching();
+          syncStatus.textContent = "Lost connection to watcher.";
+          syncStatus.className   = "status-line error";
+        }
+      }, 1500);
+    }
+
+    function stopWatching() {
+      isWatching = false;
+      clearInterval(syncInterval);
+      syncToggle.textContent = "Start Watching";
+      lastVersion = null;
+    }
+
+    syncToggle.addEventListener("click", () => { if (isWatching) stopWatching(); else startWatching(); });
+
+    // ── Shoot tab ──────────────────────────────────────────
+    let shootBytes = null; // stored Uint8Array from export
+
+    const shootDot        = document.getElementById("shoot-dot");
+    const shootCard       = document.getElementById("shoot-status-card");
+    const shootLabel      = document.getElementById("shoot-ready-label");
+    const shootSub        = document.getElementById("shoot-ready-sub");
+    const copyPngBtn      = document.getElementById("copy-png-btn");
+    const shootApplyBtn   = document.getElementById("shoot-apply-btn");
+    const shootStatus     = document.getElementById("status-shoot");
+
+    function setShootReady(bytes, name) {
+      shootBytes = bytes;
+      shootDot.style.background  = "#4cd97b";
+      shootDot.style.boxShadow   = "0 0 7px rgba(76,217,123,0.65)";
+      shootCard.style.borderColor = "rgba(76,217,123,0.28)";
+      shootCard.style.background  = "rgba(76,217,123,0.06)";
+      shootLabel.textContent      = "Image Ready";
+      shootLabel.style.color      = "#4cd97b";
+      shootSub.textContent        = name || "Ready to apply";
+      shootSub.style.color        = "rgba(76,217,123,0.55)";
+      shootApplyBtn.disabled      = false;
+      shootStatus.textContent     = "";
+    }
+
+    function clearShootReady() {
+      shootBytes = null;
+      shootDot.style.background   = "rgba(255,255,255,0.15)";
+      shootDot.style.boxShadow    = "none";
+      shootCard.style.borderColor = "rgba(255,255,255,0.07)";
+      shootCard.style.background  = "rgba(255,255,255,0.04)";
+      shootLabel.textContent      = "No image copied";
+      shootLabel.style.color      = "rgba(255,255,255,0.38)";
+      shootSub.textContent        = "Export a layer to get started";
+      shootSub.style.color        = "rgba(255,255,255,0.2)";
+      shootApplyBtn.disabled      = true;
+    }
+
+    copyPngBtn.addEventListener("click", () => {
+      shootStatus.textContent = "";
+      shootStatus.className   = "status-line";
+      copyPngBtn.disabled     = true;
+      copyPngBtn.textContent  = "Exporting…";
+      parent.postMessage({ pluginMessage: { type: "export-png" } }, "*");
+    });
+
+    shootApplyBtn.addEventListener("click", () => {
+      if (!shootBytes) return;
+      shootStatus.textContent = "";
+      parent.postMessage({ pluginMessage: { type: "apply-image", bytes: shootBytes.buffer } }, "*");
+    });
+  </script>
+</body>
+</html>

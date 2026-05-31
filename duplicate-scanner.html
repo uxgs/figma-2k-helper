@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Duplicate File Scanner</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0f0f0f; color: #e0e0e0; min-height: 100vh; padding: 2rem 2rem 6rem; }
+
+    h1 { font-size: 1.4rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .subtitle { font-size: 0.85rem; color: #666; margin-bottom: 2rem; }
+
+    .top-card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 1.25rem 1.5rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+    #status { font-size: 0.85rem; color: #777; flex: 1; min-width: 0; }
+    #progress { width: 100%; height: 3px; background: #222; border-radius: 2px; display: none; }
+    #progress-bar { height: 100%; background: #2563eb; border-radius: 2px; width: 0; transition: width 0.1s; }
+
+    button {
+      background: #2563eb; color: #fff; border: none; border-radius: 7px;
+      padding: 0.6rem 1.15rem; font-size: 0.875rem; cursor: pointer; font-weight: 500;
+      transition: background 0.15s; white-space: nowrap; flex-shrink: 0;
+    }
+    button:hover { background: #1d4ed8; }
+    button:disabled { background: #2a2a2a; color: #555; cursor: default; }
+    button.danger { background: #dc2626; }
+    button.danger:hover { background: #b91c1c; }
+    button.ghost { background: transparent; color: #aaa; border: 1px solid #333; }
+    button.ghost:hover { background: #222; color: #e0e0e0; }
+    button.sm { padding: 0.3rem 0.65rem; font-size: 0.775rem; }
+
+    #results { display: none; }
+    .stats { display: flex; gap: 0.75rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+    .stat { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 0.7rem 1.1rem; }
+    .stat-num { font-size: 1.4rem; font-weight: 700; color: #f59e0b; }
+    .stat-label { font-size: 0.72rem; color: #666; margin-top: 0.1rem; }
+
+    #search { width: 100%; background: #111; border: 1px solid #2a2a2a; border-radius: 7px; padding: 0.55rem 0.85rem; color: #e0e0e0; font-size: 0.875rem; margin-bottom: 1rem; }
+    #search:focus { outline: none; border-color: #2563eb; }
+
+    /* Groups */
+    .group { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; margin-bottom: 0.6rem; overflow: hidden; }
+    .group-header {
+      display: flex; align-items: center; gap: 0.65rem;
+      padding: 0.65rem 1rem; cursor: pointer; user-select: none; background: #1f1f1f;
+    }
+    .group-header:hover { background: #252525; }
+    .chevron { color: #555; font-size: 0.7rem; transition: transform 0.15s; flex-shrink: 0; }
+    .group.open .chevron { transform: rotate(90deg); }
+    .fname { font-weight: 600; font-size: 0.875rem; flex: 1; word-break: break-all; }
+    .badge { background: #f59e0b18; color: #f59e0b; border: 1px solid #f59e0b33; border-radius: 99px; padding: 0.15rem 0.55rem; font-size: 0.72rem; white-space: nowrap; }
+    .badge.del { background: #dc262618; color: #f87171; border-color: #dc262633; }
+    .group-actions { display: flex; gap: 0.4rem; align-items: center; }
+
+    /* File cards */
+    .file-list { display: none; padding: 0.75rem 1rem 1rem; gap: 0.75rem; flex-wrap: wrap; }
+    .group.open .file-list { display: flex; }
+
+    .file-card {
+      background: #141414; border: 2px solid #2a2a2a; border-radius: 8px;
+      width: 170px; flex-shrink: 0; overflow: hidden; transition: border-color 0.15s, background 0.15s;
+      display: flex; flex-direction: column;
+    }
+    .file-card.keep { border-color: #16a34a; background: #0d1f13; }
+    .file-card.delete { border-color: #dc2626; background: #1f0d0d; }
+
+    .thumb-wrap {
+      width: 100%; height: 130px; background: #0d0d0d; display: flex; align-items: center; justify-content: center;
+      overflow: hidden; position: relative; flex-shrink: 0;
+    }
+    .thumb-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .thumb-wrap .no-preview { color: #333; font-size: 2.5rem; user-select: none; }
+    .thumb-wrap .loading { color: #444; font-size: 0.75rem; }
+
+    .file-info { padding: 0.5rem 0.6rem 0.4rem; flex: 1; min-width: 0; }
+    .file-name { font-size: 0.8rem; color: #ccc; font-weight: 600; word-break: break-all; margin-bottom: 0.2rem; }
+    .file-path { font-size: 0.68rem; color: #555; word-break: break-all; line-height: 1.35; }
+
+    .card-actions { display: flex; border-top: 1px solid #222; }
+    .card-btn {
+      flex: 1; padding: 0.45rem 0; font-size: 0.75rem; font-weight: 600;
+      border: none; background: transparent; cursor: pointer; transition: background 0.12s; color: #555;
+    }
+    .card-btn:first-child { border-right: 1px solid #222; }
+    .card-btn:hover { background: #222; }
+    .card-btn.keep-btn.active { background: #14532d; color: #4ade80; }
+    .card-btn.del-btn.active { background: #450a0a; color: #f87171; }
+
+    /* Delete bar */
+    #delete-bar {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: #120a0a; border-top: 1px solid #3f1212;
+      padding: 0.85rem 2rem; display: flex; align-items: center; gap: 1rem;
+      z-index: 100; transform: translateY(100%); transition: transform 0.2s;
+    }
+    #delete-bar.visible { transform: translateY(0); }
+    #delete-count { font-size: 0.875rem; color: #aaa; flex: 1; }
+    #delete-count strong { color: #f87171; }
+
+    /* Modal */
+    #modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+      display: none; align-items: center; justify-content: center; z-index: 200;
+    }
+    #modal-overlay.visible { display: flex; }
+    #modal {
+      background: #1a1a1a; border: 1px solid #3a1a1a; border-radius: 12px;
+      padding: 1.75rem; max-width: 440px; width: calc(100% - 2rem);
+    }
+    #modal h2 { font-size: 1.1rem; margin-bottom: 0.5rem; color: #f87171; }
+    #modal p { font-size: 0.875rem; color: #aaa; margin-bottom: 0.35rem; line-height: 1.5; }
+    #modal-list { max-height: 180px; overflow-y: auto; margin: 0.75rem 0 1.25rem; }
+    #modal-list div { font-size: 0.775rem; color: #888; padding: 0.2rem 0; border-bottom: 1px solid #222; word-break: break-all; }
+    #modal-list div:last-child { border-bottom: none; }
+    #modal-list div::before { content: '✕  '; color: #f87171; }
+    .modal-actions { display: flex; gap: 0.6rem; justify-content: flex-end; }
+
+    .empty { color: #555; font-size: 0.875rem; padding: 1rem 0; }
+  </style>
+</head>
+<body>
+  <h1>Duplicate File Scanner</h1>
+  <p class="subtitle">Finds files sharing the same name — select which copies to delete</p>
+
+  <div class="top-card">
+    <button id="pickBtn">Choose Folder</button>
+    <div style="flex:1;min-width:0">
+      <div id="status">No folder selected.</div>
+      <div id="progress"><div id="progress-bar"></div></div>
+    </div>
+  </div>
+
+  <div id="results">
+    <div class="stats">
+      <div class="stat"><div class="stat-num" id="statTotal">0</div><div class="stat-label">Files scanned</div></div>
+      <div class="stat"><div class="stat-num" id="statDupNames">0</div><div class="stat-label">Duplicate names</div></div>
+      <div class="stat"><div class="stat-num" id="statDupFiles">0</div><div class="stat-label">Files involved</div></div>
+    </div>
+    <input id="search" type="search" placeholder="Filter by filename…" />
+    <div id="groups"></div>
+  </div>
+
+  <!-- Sticky delete bar -->
+  <div id="delete-bar">
+    <div id="delete-count"></div>
+    <button class="ghost sm" id="clearAllBtn">Clear all</button>
+    <button class="danger" id="deleteBtn">Delete marked files</button>
+  </div>
+
+  <!-- Confirmation modal -->
+  <div id="modal-overlay">
+    <div id="modal">
+      <h2>Permanently delete files?</h2>
+      <p>These files will be deleted immediately. This cannot be undone.</p>
+      <div id="modal-list"></div>
+      <div class="modal-actions">
+        <button class="ghost" id="cancelDeleteBtn">Cancel</button>
+        <button class="danger" id="confirmDeleteBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const pickBtn = document.getElementById('pickBtn');
+    const statusEl = document.getElementById('status');
+    const progressEl = document.getElementById('progress');
+    const progressBar = document.getElementById('progress-bar');
+    const resultsEl = document.getElementById('results');
+    const groupsEl = document.getElementById('groups');
+    const searchEl = document.getElementById('search');
+    const deleteBar = document.getElementById('delete-bar');
+    const deleteCountEl = document.getElementById('delete-count');
+    const deleteBtnEl = document.getElementById('deleteBtn');
+    const clearAllBtn = document.getElementById('clearAllBtn');
+    const modalOverlay = document.getElementById('modal-overlay');
+    const modalList = document.getElementById('modal-list');
+    const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+
+    const IMAGE_EXTS = new Set(['jpg','jpeg','png','gif','webp','svg','bmp','avif','ico','tiff','tif']);
+    let allGroups = [];  // [{ key (base name), files: [{fullPath, fileHandle, parentHandle, name, state}] }]
+    let objectUrls = [];
+
+    function isImage(name) {
+      return IMAGE_EXTS.has(name.split('.').pop().toLowerCase());
+    }
+
+    // Strip extension for grouping — "photo.png" and "photo.dds" share key "photo"
+    function baseName(name) {
+      const dot = name.lastIndexOf('.');
+      const base = dot > 0 ? name.slice(0, dot) : name;
+      return base.toLowerCase();
+    }
+
+    // ── Scan ─────────────────────────────────────────────────────────────────
+    async function scan(dirHandle, map, path = '') {
+      for await (const [name, handle] of dirHandle.entries()) {
+        if (handle.kind === 'file') {
+          const fullPath = path ? `${path}/${name}` : name;
+          const key = baseName(name);
+          if (!map.has(key)) map.set(key, []);
+          map.get(key).push({ fullPath, fileHandle: handle, parentHandle: dirHandle, name, state: 'none' });
+        } else if (handle.kind === 'directory') {
+          statusEl.textContent = `Scanning: ${path ? path + '/' + name : name}`;
+          await scan(handle, map, path ? `${path}/${name}` : name);
+        }
+      }
+    }
+
+    // ── Thumbnails ────────────────────────────────────────────────────────────
+    async function loadThumb(thumbWrap, fileHandle, name) {
+      if (!isImage(name)) {
+        thumbWrap.innerHTML = '<span class="no-preview">🗂</span>';
+        return;
+      }
+      thumbWrap.innerHTML = '<span class="loading">loading…</span>';
+      try {
+        const file = await fileHandle.getFile();
+        const url = URL.createObjectURL(file);
+        objectUrls.push(url);
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = name;
+        img.onerror = () => { thumbWrap.innerHTML = '<span class="no-preview">🖼</span>'; };
+        thumbWrap.innerHTML = '';
+        thumbWrap.appendChild(img);
+      } catch {
+        thumbWrap.innerHTML = '<span class="no-preview">🖼</span>';
+      }
+    }
+
+    function revokeObjectUrls() {
+      objectUrls.forEach(u => URL.revokeObjectURL(u));
+      objectUrls = [];
+    }
+
+    // ── Render ────────────────────────────────────────────────────────────────
+    function splitPath(fullPath) {
+      const idx = fullPath.lastIndexOf('/');
+      return idx === -1
+        ? { dir: '', base: fullPath }
+        : { dir: fullPath.slice(0, idx + 1), base: fullPath.slice(idx + 1) };
+    }
+
+    function escHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function updateDeleteBar() {
+      const toDelete = allGroups.flatMap(g => g.files.filter(f => f.state === 'delete'));
+      if (toDelete.length > 0) {
+        deleteCountEl.innerHTML = `<strong>${toDelete.length}</strong> file${toDelete.length !== 1 ? 's' : ''} marked for deletion`;
+        deleteBar.classList.add('visible');
+      } else {
+        deleteBar.classList.remove('visible');
+      }
+    }
+
+    function setFileState(group, fileObj, state, card) {
+      fileObj.state = state;
+      card.classList.toggle('keep', state === 'keep');
+      card.classList.toggle('delete', state === 'delete');
+      card.querySelector('.keep-btn').classList.toggle('active', state === 'keep');
+      card.querySelector('.del-btn').classList.toggle('active', state === 'delete');
+      updateGroupBadge(group);
+      updateDeleteBar();
+    }
+
+    function updateGroupBadge(group) {
+      const delCount = group.files.filter(f => f.state === 'delete').length;
+      const el = document.querySelector(`[data-group="${CSS.escape(group.key)}"] .badge`);
+      if (!el) return;
+      if (delCount > 0) {
+        el.textContent = `${delCount} to delete`;
+        el.classList.add('del');
+      } else {
+        el.textContent = `${group.files.length} copies`;
+        el.classList.remove('del');
+      }
+    }
+
+    function renderGroup(group) {
+      const div = document.createElement('div');
+      div.className = 'group';
+      div.dataset.group = group.key;
+
+      div.innerHTML = `
+        <div class="group-header">
+          <span class="chevron">&#9654;</span>
+          <span class="fname">${escHtml(group.key)}</span>
+          <div class="group-actions">
+            <button class="ghost sm auto-btn" title="Mark all but first as delete">Keep first</button>
+            <span class="badge">${group.files.length} copies</span>
+          </div>
+        </div>
+        <div class="file-list"></div>
+      `;
+
+      const header = div.querySelector('.group-header');
+      const fileList = div.querySelector('.file-list');
+      const autoBtn = div.querySelector('.auto-btn');
+      let thumbsLoaded = false;
+
+      // Auto-select: keep first, delete rest
+      autoBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        group.files.forEach((f, i) => {
+          const card = fileList.querySelector(`[data-path="${CSS.escape(f.fullPath)}"]`);
+          if (card) setFileState(group, f, i === 0 ? 'keep' : 'delete', card);
+        });
+      });
+
+      header.addEventListener('click', () => {
+        div.classList.toggle('open');
+        if (div.classList.contains('open') && !thumbsLoaded) {
+          thumbsLoaded = true;
+          group.files.forEach(f => {
+            const card = fileList.querySelector(`[data-path="${CSS.escape(f.fullPath)}"]`);
+            if (card) loadThumb(card.querySelector('.thumb-wrap'), f.fileHandle, f.name);
+          });
+        }
+      });
+
+      group.files.forEach(fileObj => {
+        const { dir, base } = splitPath(fileObj.fullPath);
+        const card = document.createElement('div');
+        card.className = 'file-card';
+        card.dataset.path = fileObj.fullPath;
+        card.innerHTML = `
+          <div class="thumb-wrap"><span class="loading">…</span></div>
+          <div class="file-info">
+            <div class="file-name">${escHtml(fileObj.name)}</div>
+            <div class="file-path"><span class="dir">${escHtml(dir || '/')}</span></div>
+          </div>
+          <div class="card-actions">
+            <button class="card-btn keep-btn">Keep</button>
+            <button class="card-btn del-btn">Delete</button>
+          </div>
+        `;
+
+        card.querySelector('.keep-btn').addEventListener('click', () => {
+          setFileState(group, fileObj, fileObj.state === 'keep' ? 'none' : 'keep', card);
+        });
+        card.querySelector('.del-btn').addEventListener('click', () => {
+          setFileState(group, fileObj, fileObj.state === 'delete' ? 'none' : 'delete', card);
+        });
+
+        fileList.appendChild(card);
+      });
+
+      groupsEl.appendChild(div);
+    }
+
+    function renderGroups(groups) {
+      groupsEl.innerHTML = '';
+      if (!groups.length) {
+        groupsEl.innerHTML = '<div class="empty">No duplicates found matching your filter.</div>';
+        return;
+      }
+      groups.forEach(renderGroup);
+    }
+
+    // ── Search ────────────────────────────────────────────────────────────────
+    searchEl.addEventListener('input', () => {
+      const q = searchEl.value.trim().toLowerCase();
+      const filtered = q ? allGroups.filter(g => g.key.toLowerCase().includes(q)) : allGroups;
+      renderGroups(filtered);
+    });
+
+    // ── Scan trigger ──────────────────────────────────────────────────────────
+    pickBtn.addEventListener('click', async () => {
+      let dirHandle;
+      try {
+        dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+      } catch (e) {
+        if (e.name === 'AbortError') return; // user cancelled
+        statusEl.textContent = `Error: ${e.name} — ${e.message}`;
+        return;
+      }
+
+      revokeObjectUrls();
+      pickBtn.disabled = true;
+      statusEl.textContent = 'Scanning…';
+      progressEl.style.display = 'block';
+      progressBar.style.width = '30%';
+      resultsEl.style.display = 'none';
+      deleteBar.classList.remove('visible');
+      searchEl.value = '';
+
+      const map = new Map();
+      try {
+        await scan(dirHandle, map, '');
+      } catch (err) {
+        statusEl.textContent = `Error: ${err.message}`;
+        pickBtn.disabled = false;
+        progressEl.style.display = 'none';
+        return;
+      }
+
+      let totalFiles = 0;
+      map.forEach(files => totalFiles += files.length);
+
+      allGroups = [];
+      map.forEach((files, key) => {
+        if (files.length > 1) allGroups.push({ key, files });
+      });
+      allGroups.sort((a, b) => b.files.length - a.files.length || a.key.localeCompare(b.key));
+
+      const dupFiles = allGroups.reduce((s, g) => s + g.files.length, 0);
+      document.getElementById('statTotal').textContent = totalFiles.toLocaleString();
+      document.getElementById('statDupNames').textContent = allGroups.length.toLocaleString();
+      document.getElementById('statDupFiles').textContent = dupFiles.toLocaleString();
+
+      progressBar.style.width = '100%';
+      setTimeout(() => { progressEl.style.display = 'none'; progressBar.style.width = '0'; }, 400);
+
+      renderGroups(allGroups);
+      resultsEl.style.display = 'block';
+      statusEl.textContent = `Done — scanned ${totalFiles.toLocaleString()} files in "${dirHandle.name}".`;
+      pickBtn.disabled = false;
+    });
+
+    // ── Clear all ─────────────────────────────────────────────────────────────
+    clearAllBtn.addEventListener('click', () => {
+      allGroups.forEach(group => {
+        group.files.forEach(f => {
+          f.state = 'none';
+          const card = document.querySelector(`[data-path="${CSS.escape(f.fullPath)}"]`);
+          if (card) {
+            card.classList.remove('keep', 'delete');
+            card.querySelector('.keep-btn').classList.remove('active');
+            card.querySelector('.del-btn').classList.remove('active');
+          }
+        });
+        updateGroupBadge(group);
+      });
+      updateDeleteBar();
+    });
+
+    // ── Delete flow ───────────────────────────────────────────────────────────
+    deleteBtnEl.addEventListener('click', () => {
+      const toDelete = allGroups.flatMap(g => g.files.filter(f => f.state === 'delete'));
+      if (!toDelete.length) return;
+      modalList.innerHTML = toDelete.map(f => `<div>${escHtml(f.fullPath)}</div>`).join('');
+      modalOverlay.classList.add('visible');
+    });
+
+    cancelDeleteBtn.addEventListener('click', () => modalOverlay.classList.remove('visible'));
+    modalOverlay.addEventListener('click', e => { if (e.target === modalOverlay) modalOverlay.classList.remove('visible'); });
+
+    confirmDeleteBtn.addEventListener('click', async () => {
+      modalOverlay.classList.remove('visible');
+      const toDelete = allGroups.flatMap(g => g.files.filter(f => f.state === 'delete'));
+
+      let deleted = 0, failed = 0;
+      for (const f of toDelete) {
+        try {
+          await f.parentHandle.removeEntry(f.name);
+          deleted++;
+          // Remove from group
+          const group = allGroups.find(g => g.files.includes(f));
+          if (group) {
+            group.files = group.files.filter(x => x !== f);
+            const card = document.querySelector(`[data-path="${CSS.escape(f.fullPath)}"]`);
+            if (card) card.remove();
+          }
+        } catch (err) {
+          console.error('Failed to delete', f.fullPath, err);
+          failed++;
+        }
+      }
+
+      // Clean up empty or single-file groups
+      allGroups = allGroups.filter(g => {
+        if (g.files.length < 2) {
+          const groupEl = document.querySelector(`[data-group="${CSS.escape(g.key)}"]`);
+          if (groupEl) groupEl.remove();
+          return false;
+        }
+        return true;
+      });
+
+      allGroups.forEach(g => updateGroupBadge(g));
+      updateDeleteBar();
+
+      // Update stats
+      const remaining = allGroups.reduce((s, g) => s + g.files.length, 0);
+      document.getElementById('statDupNames').textContent = allGroups.length.toLocaleString();
+      document.getElementById('statDupFiles').textContent = remaining.toLocaleString();
+
+      const msg = failed > 0
+        ? `Deleted ${deleted} file${deleted !== 1 ? 's' : ''}. ${failed} failed (check console).`
+        : `Deleted ${deleted} file${deleted !== 1 ? 's' : ''}.`;
+      statusEl.textContent = msg;
+
+      if (!allGroups.length) groupsEl.innerHTML = '<div class="empty">All duplicates resolved.</div>';
+    });
+  </script>
+</body>
+</html>
