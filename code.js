@@ -264,6 +264,30 @@ figma.ui.onmessage = (msg) => {
     });
   }
 
+  if (msg.type === "select-image-layers") {
+    const frames = figma.currentPage.selection;
+    if (frames.length === 0) {
+      figma.ui.postMessage({ type: "success-select", message: "No frames selected." });
+      return;
+    }
+    const imageNodes = [];
+    for (var i = 0; i < frames.length; i++) {
+      if ("findAll" in frames[i]) {
+        frames[i].findAll(function(n) { return n.name === "Image"; }).forEach(function(n) {
+          imageNodes.push(n);
+        });
+      }
+      if (frames[i].name === "Image") imageNodes.push(frames[i]);
+    }
+    figma.currentPage.selection = imageNodes;
+    figma.ui.postMessage({
+      type: "success-select",
+      message: imageNodes.length > 0
+        ? `Selected ${imageNodes.length} "Image" layer${imageNodes.length !== 1 ? "s" : ""}.`
+        : `No layers named "Image" found in selection.`
+    });
+  }
+
   if (msg.type === "select-children") {
     const frames = figma.currentPage.selection;
     if (frames.length === 0) {

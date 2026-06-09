@@ -271,7 +271,8 @@
     <div id="status-errors" class="status-line"></div>
     <button id="select-jersey-btn" class="btn-ghost" style="margin-top:8px;">Select Jersey</button>
     <div id="status-suffix-select" class="status-line"></div>
-    <button id="select-children-btn" class="btn-ghost" style="margin-top:6px;">Select All Elements in Selected Frames</button>
+    <button id="select-image-layers-btn" class="btn-ghost" style="margin-top:8px;">Select "Image" Layers in Selection</button>
+    <button id="select-children-btn" class="btn-ghost" style="margin-top:8px;">Select All Elements in Selected Frames</button>
   </div>
 
   <!-- Update Panel (formerly Change) -->
@@ -629,6 +630,11 @@
     document.getElementById("select-jersey-btn").addEventListener("click", () => {
       document.getElementById("status-suffix-select").textContent = "";
       parent.postMessage({ pluginMessage: { type: "select-jersey-frames" } }, "*");
+    });
+
+    document.getElementById("select-image-layers-btn").addEventListener("click", () => {
+      document.getElementById("status-suffix-select").textContent = "";
+      parent.postMessage({ pluginMessage: { type: "select-image-layers" } }, "*");
     });
 
     document.getElementById("select-children-btn").addEventListener("click", () => {
