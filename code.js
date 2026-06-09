@@ -1,4 +1,4 @@
-figma.showUI(__html__, { width: 380, height: 460 });
+figma.showUI(__html__, { width: 380, height: 460, resizable: true });
 let multiSelectMode = false;
 const multiSelectIds = new Set();
 
