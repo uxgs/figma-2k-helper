@@ -1,4 +1,4 @@
-figma.showUI(__html__, { width: 380, height: 460, resizable: true });
+figma.showUI(__html__, { width: 380, height: 460 });
 let multiSelectMode = false;
 const multiSelectIds = new Set();
 
@@ -425,6 +425,10 @@ figma.ui.onmessage = (msg) => {
     }).catch(function() {
       figma.ui.postMessage({ type: "shoot-error", message: "Export failed." });
     });
+  }
+
+  if (msg.type === "resize") {
+    figma.ui.resize(msg.width, msg.height);
   }
 
   if (msg.type === "close") {

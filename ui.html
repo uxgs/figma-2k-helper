@@ -208,10 +208,36 @@
       border-color: rgba(10,132,255,0.5);
       filter: none;
     }
+
+    /* Resize handle */
+    #resize-handle {
+      position: fixed;
+      bottom: 0;
+      right: 0;
+      width: 16px;
+      height: 16px;
+      cursor: nwse-resize;
+      z-index: 9999;
+      opacity: 0.3;
+      transition: opacity 0.15s;
+    }
+    #resize-handle:hover { opacity: 0.7; }
+    #resize-handle::before {
+      content: '';
+      position: absolute;
+      bottom: 4px;
+      right: 4px;
+      width: 7px;
+      height: 7px;
+      border-right: 2px solid #fff;
+      border-bottom: 2px solid #fff;
+      border-radius: 1px;
+    }
   </style>
 </head>
 <body>
 
+  <div id="resize-handle"></div>
   <div class="tabs">
     <div class="tab active" data-tab="rename">Rename</div>
     <div class="tab" data-tab="select">Select</div>
@@ -780,6 +806,31 @@
     }
 
     syncToggle.addEventListener("click", () => { if (isWatching) stopWatching(); else startWatching(); });
+
+    // ── Resize handle ──────────────────────────────────────
+    (function() {
+      const handle = document.getElementById("resize-handle");
+      let dragging = false, startX, startY, startW, startH;
+      const MIN_W = 300, MIN_H = 360;
+
+      handle.addEventListener("mousedown", (e) => {
+        dragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        startW = window.innerWidth;
+        startH = window.innerHeight;
+        e.preventDefault();
+      });
+
+      document.addEventListener("mousemove", (e) => {
+        if (!dragging) return;
+        const w = Math.max(MIN_W, startW + (e.clientX - startX));
+        const h = Math.max(MIN_H, startH + (e.clientY - startY));
+        parent.postMessage({ pluginMessage: { type: "resize", width: Math.round(w), height: Math.round(h) } }, "*");
+      });
+
+      document.addEventListener("mouseup", () => { dragging = false; });
+    })();
 
     // ── Shoot tab ──────────────────────────────────────────
     let shootBytes = null; // stored Uint8Array from export
